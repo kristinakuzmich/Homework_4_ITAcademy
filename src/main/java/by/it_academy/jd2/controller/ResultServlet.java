@@ -1,34 +1,50 @@
 package by.it_academy.jd2.controller;
 
-import by.it_academy.jd2.service.PlaylistService;
+import by.it_academy.jd2.dto.Song;
 import by.it_academy.jd2.service.api.IPlaylistService;
+import by.it_academy.jd2.service.PlaylistService;
+import by.it_academy.jd2.storage.api.IPlaylistStorage;
+import by.it_academy.jd2.storage.PlaylistStorageRam;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 
-@WebServlet(urlPatterns = "/result")
 public class ResultServlet extends HttpServlet {
 
-    private final IPlaylistService service = new PlaylistService();
+    private IPlaylistStorage storage;
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setContentType("text/html;charset=UTF-8");
-        var writer = resp.getWriter();
-        writer.write("<html><body>");
-        if (service.getPlaylist(req.getSession().getId()) == null) {
-            writer.write("<h1>No Person Found</h1>");
+    public void init() throws ServletException {
+        storage = new PlaylistStorageRam(); // Инициализация
+    }
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        IPlaylistService service = new PlaylistService(storage, session);
+
+        String email = service.getUserEmail();
+        if (email == null) {
+            response.getWriter().write("Email not set. Please set your email first.");
             return;
         }
-        writer.write("Email:" + req.getSession().getAttribute("email") + "<br><br>");
-        writer.write("<h1>Ваш плейлист</h1><ul>");
-        for (String track : service.getPlaylist(req.getSession().getId()).getSongs()) {
-            writer.write("<li>" + track + "</li>");
+        List<Song> playlist = service.getUserPlaylist();
+
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+
+        out.println("<html><head><title>User Playlist</title></head><body>");
+        out.println("<h2>Плейлист пользователя: " + email + "</h2>");
+        out.println("<ul>");
+        for (Song song : playlist) {
+            out.println("<li>" + song.getTitle() + " - " + song.getArtist() + "</li>");
         }
-        writer.write("</ul></body></html>");
+        out.println("</ul>");
+        out.println("</body></html>");
     }
 }

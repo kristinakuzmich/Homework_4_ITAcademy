@@ -1,71 +1,49 @@
 package by.it_academy.jd2.controller;
 
-import by.it_academy.jd2.dto.Playlist;
+import by.it_academy.jd2.dto.Song;
 import by.it_academy.jd2.service.PlaylistService;
 import by.it_academy.jd2.service.api.IPlaylistService;
+import by.it_academy.jd2.storage.api.IPlaylistStorage;
+import by.it_academy.jd2.storage.PlaylistStorageRam;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.Enumeration;
 
-@WebServlet(urlPatterns = "/playlist")
 public class PlaylistServlet extends HttpServlet {
 
-    private final IPlaylistService service = new PlaylistService();
-
-    private boolean isSessionExists(HttpServletRequest req) {
-        if (service.getPlaylist(req.getSession().getId()) == null) {
-            service.add(new Playlist(req.getSession().getId()));
-            return true;
-        }
-        return false;
-    }
+    private IPlaylistStorage storage;
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        isSessionExists(req);
-        resp.sendRedirect(req.getContextPath() + "/result");
+    public void init() throws ServletException {
+        storage = new PlaylistStorageRam(); // Инициализация хранилища
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        isSessionExists(req);
-        Enumeration<String> params = req.getParameterNames();
-        while (params.hasMoreElements()) {
-            String param = params.nextElement();
-            if (param.equals("email")) {
-                req.getSession().setAttribute("email", req.getParameter(param));
-            }
-            if (param.equals("addSong")) {
-                service.getPlaylist(req.getSession().getId()).addSong(req.getParameter(param));
-            }
-        }
-        resp.sendRedirect(req.getContextPath() + "/result");
-    }
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Определение операции
+        String operation = request.getParameter("operation");
+        HttpSession session = request.getSession();
+        IPlaylistService service = new PlaylistService(storage, session);
 
-    @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        isSessionExists(req);
-        Enumeration<String> params = req.getParameterNames();
-        while (params.hasMoreElements()) {
-            String param = params.nextElement();
-            if (param.equals("email")) {
-                req.getSession().setAttribute("email", req.getParameter(param));
+        if ("setEmail".equals(operation)) {
+            String email = request.getParameter("email");
+            service.setUserEmail(email);
+            response.getWriter().write("Email set: " + email);
+        } else if ("addSong".equals(operation)) {
+            String title = request.getParameter("title");
+            String artist = request.getParameter("artist");
+            if (title != null && artist != null) {
+                service.addSongToUserPlaylist(new Song(title, artist));
+                response.getWriter().write("Song added");
             }
-            if (param.equals("addSong")) {
-                service.getPlaylist(req.getSession().getId()).addSong(req.getParameter(param));
-            }
-            if (param.equals("deleleSong")) {
-                service.getPlaylist(req.getSession().getId()).deleteSong(req.getParameter(param));
+        } else if ("removeSong".equals(operation)) {
+            String title = request.getParameter("title");
+            if (title != null) {
+                service.removeSongFromUserPlaylist(title);
+                response.getWriter().write("Song removed");
             }
         }
-        resp.sendRedirect(req.getContextPath() + "/result");
     }
 }

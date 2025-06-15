@@ -1,9 +1,13 @@
 package by.it_academy.jd2.service.api;
 
-import by.it_academy.jd2.dto.Playlist;
+import by.it_academy.jd2.dto.Song;
+import java.util.List;
 
 public interface IPlaylistService {
-    void add(Playlist playlist);
+    void setUserEmail(String email);
+    String getUserEmail();
 
-    Playlist getPlaylist(String sessionId);
+    void addSongToUserPlaylist(Song song);
+    void removeSongFromUserPlaylist(String songTitle);
+    List<Song> getUserPlaylist();
 }

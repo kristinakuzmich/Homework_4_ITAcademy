@@ -1,21 +1,25 @@
 package by.it_academy.jd2.storage;
 
-import by.it_academy.jd2.dto.Playlist;
+import by.it_academy.jd2.dto.Song;
 import by.it_academy.jd2.storage.api.IPlaylistStorage;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class PlaylistStorageRam implements IPlaylistStorage {
-    private final List<Playlist> playlists = new ArrayList<>();
+    private final Map<String, List<Song>> playlists = new HashMap<>();
 
     @Override
-    public void add(Playlist playlist) {
-        this.playlists.add(playlist);
+    public synchronized Map<String, List<Song>> getAllPlaylists() {
+        return new HashMap<>(playlists);
     }
 
     @Override
-    public List<Playlist> getAll() {
-        return this.playlists;
+    public synchronized List<Song> getPlaylistByEmail(String email) {
+        return playlists.getOrDefault(email, new ArrayList<>());
+    }
+
+    @Override
+    public synchronized void savePlaylist(String email, List<Song> playlist) {
+        playlists.put(email, playlist);
     }
 }
